@@ -1,129 +1,147 @@
-# 🎓 Google Meet Attendance Tracker (Web App & Python)
+# 🎓 Google Meet Attendance Tracker (Web App)
 
-An automated tool & modern web dashboard to track student attendance from Google Meet sessions, extract participant display names, calculate exact active durations (including reconnects/multiple sessions), and export formatted Excel reports with visual status badges.
+A modern, automated web application and attendance dashboard for Google Meet sessions. Directly tracks participants who joined the meeting, calculates active durations (handling reconnects and multiple sessions), and generates color-coded Excel reports with 1-click downloads.
+
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)
+![Flask](https://img.shields.io/badge/Flask-3.x-black?logo=flask)
+![Render](https://img.shields.io/badge/Deploy-Render.com-46E3B7?logo=render)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 ---
 
-## 🚀 1. Run the Web Dashboard (Local)
+## ✨ Key Features
 
-Launch the web application on your local machine:
+- **🌐 Modern Web Dashboard**: Sleek dark-mode interface with live summary metric cards (Total Attendees, Present, Absent, Attendance %).
+- **🚫 Zero Pre-Setup Required**: No need to prepare CSV rosters or roll number lists beforehand. The tracker pulls attendee display names directly from Google Meet.
+- **⏱️ Active Duration Calculation**: Accurately sums multiple join/leave sessions if a student gets disconnected and rejoins.
+- **🎚️ Dynamic Threshold Slider**: Instantly adjust the minimum required minutes for a student to be marked **Present** (e.g. 15m, 30m, 45m).
+- **📊 1-Click Excel Export**: Formatted spreadsheets with summary statistics, timestamps, and color badges (**Present** in green, **Absent** in red).
+- **🔒 100% Secure & GitHub Safe**: All secrets and OAuth tokens reside strictly in `.env`. No credentials or token JSON files are pushed to GitHub.
+- **☁️ Cloud & Render Ready**: Includes `render.yaml` and `Procfile` for 1-click deployment on Render.com.
 
+---
+
+## 📁 Project Architecture
+
+```
+Attendance tracker/
+├── attendance_tracker/
+│   ├── __init__.py
+│   ├── config.py           # Configuration & environment loader
+│   ├── auth.py             # Cloud-native OAuth 2.0 authentication
+│   ├── meet_service.py     # Google Meet REST API v2 client
+│   ├── tracker.py          # Attendance & duration processor
+│   ├── reporter.py         # Formatted Excel exporter with badges
+│   └── mock_service.py     # Mock participant logs for immediate testing
+├── templates/
+│   └── index.html          # Modern dashboard frontend
+├── static/
+│   ├── css/style.css       # Dark glassmorphism design system
+│   └── js/app.js           # Client-side interactive logic
+├── .env.example            # Environment variables template
+├── requirements.txt        # Production dependencies
+├── Procfile                # WSGI command for Render
+├── render.yaml             # Render deployment blueprint
+├── app.py                  # Web application entry point (Flask)
+└── README.md
+```
+
+---
+
+## 🚀 Quick Start (Local Machine)
+
+### 1. Install Dependencies
 ```bash
-# Start the web app
+pip install -r requirements.txt
+```
+
+### 2. Configure Environment (`.env`)
+Create a `.env` file (copied from `.env.example`) and add your Google OAuth credentials:
+```env
+GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your_client_secret
+GOOGLE_PROJECT_ID=your_project_id
+GOOGLE_REFRESH_TOKEN=your_refresh_token
+
+DEFAULT_MIN_DURATION_MINUTES=30.0
+```
+
+### 3. Run the Web Application
+```bash
 python app.py
 ```
 Open your browser and navigate to: **`http://localhost:5000`**
 
-* **Enter Meet Code / URL**: Paste `https://meet.google.com/abc-defg-hij` or just `abc-defg-hij`.
-* **Duration Slider**: Adjust minimum duration required to be marked *Present* (e.g. 30 mins).
-* **Live Metrics**: Instantly see Total Attendees, Present, Absent, and Attendance %.
-* **Instant Download**: Click **Download Excel** to get the formatted spreadsheet.
-* **Test / Demo**: Click **Run Test (Demo)** to preview reporting without a live meeting.
+- **Live Meeting**: Paste your Google Meet link (`https://meet.google.com/abc-defg-hij`) or meeting code (`abc-defg-hij`) and click **Fetch & Generate Attendance**.
+- **Instant Demo**: Click **Run Test (Demo)** to preview attendance tracking without needing a live call.
+- **Download Excel**: Click **Download Excel** to get the formatted `.xlsx` report.
 
 ---
 
-## ☁️ 2. Deploy to Render (Cloud Web Service)
+## ☁️ Deploy to Render.com (Cloud Web Service)
 
-This application is ready for deployment on [Render.com](https://render.com):
+Deploy your attendance tracker to Render for free so you and your team can access it from any browser:
 
-1. **Push your code to GitHub**:
-   ```bash
-   git add .
-   git commit -m "Meet Attendance Web App"
-   git push origin main
-   ```
-2. **Create a New Web Service on Render**:
-   - Go to [dashboard.render.com](https://dashboard.render.com) > Click **New +** > **Web Service**.
-   - Connect your GitHub repository.
-3. **Configure Settings (or use `render.yaml`)**:
-   - **Environment:** `Python 3`
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `gunicorn app:app`
-4. **Environment Variables**:
-   In Render's **Environment** tab, add:
-   - `GOOGLE_TOKEN_JSON`: Paste the entire JSON contents of your local `token.json` file.
-   *(This allows Render to authenticate with your Google Meet API without needing local file uploads!)*
-   - `DEFAULT_MIN_DURATION_MINUTES`: `30.0` (Optional)
-
----
-
-## 💻 3. CLI Mode (Command Line Runner)
-
-You can also run from the terminal directly:
-
+### Step 1: Push Code to GitHub
 ```bash
-# Process live meeting
-python main.py --record-id "abc-defg-hij" --min-duration 30
-
-# Run CLI demo
-python main.py --demo
+git init
+git add .
+git commit -m "Initial commit: Meet Attendance Web App"
+git branch -M main
+git remote add origin https://github.com/<YOUR_USERNAME>/<YOUR_REPO>.git
+git push -u origin main
 ```
-
-This will:
-1. Load `sample_students.csv` (Roll numbers 101 to 106).
-2. Process mock participant sessions with varying durations and reconnects.
-3. Mark students as **Present** (>= 30 mins) or **Absent** (< 30 mins).
-4. Output the table to terminal and generate `reports/attendance_report.xlsx`.
+> **Security Notice**: Both `.env`, `credentials.json`, and `token.json` are listed in `.gitignore`. Your secrets will **never** be uploaded to GitHub.
 
 ---
 
-## 🔑 Google API & Cloud Console Setup
-
-To connect live with Google Meet:
-
-### Step 1: Create a Google Cloud Project
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
-2. Click **Select a project** > **New Project** and name it (e.g. `Meet-Attendance-Tracker`).
-
-### Step 2: Enable Google Meet API
-1. Navigate to **APIs & Services** > **Library**.
-2. Search for **Google Meet API** and click **Enable**.
-
-### Step 3: Configure OAuth Consent Screen
-1. Go to **APIs & Services** > **OAuth consent screen**.
-2. Choose **External** (or **Internal** if using a Google Workspace organization).
-3. Fill in App Name (e.g., `Meet Attendance`) and your email.
-4. Add the following Scopes:
-   - `https://www.googleapis.com/auth/meetings.space.readonly`
-   - `https://www.googleapis.com/auth/meetings.space.created`
-5. In **Test Users**, add your Google email address.
-
-### Step 4: Create OAuth 2.0 Credentials
-1. Go to **APIs & Services** > **Credentials**.
-2. Click **Create Credentials** > **OAuth client ID**.
-3. Select Application type: **Desktop app**.
-4. Download the JSON credentials file and rename it to **`credentials.json`** in the root directory.
+### Step 2: Create Web Service on Render
+1. Go to [dashboard.render.com](https://dashboard.render.com) and log in.
+2. Click **New +** > **Web Service**.
+3. Connect your GitHub repository.
 
 ---
 
----
-
-## 📖 Usage Guide
-
-### 1. Direct Attendance Tracking (No Pre-made Roster Needed)
-You do **not** need to prepare any CSV or roster file in advance. The tracker automatically extracts attendee display names and calculates active durations directly from Google Meet:
-
-```bash
-# Track attendance directly by meeting code (e.g. abc-defg-hij)
-.venv\Scripts\python.exe main.py --record-id "abc-defg-hij"
-
-# Set minimum required active duration (e.g., 40 minutes)
-.venv\Scripts\python.exe main.py --record-id "abc-defg-hij" --min-duration 40
-
-# Custom output Excel report name
-.venv\Scripts\python.exe main.py --record-id "abc-defg-hij" --output "Lecture_Attendance.xlsx"
-```
-
-### 2. Optional: Custom Student Roster (If Desired)
-If you ever want to match against an enrolled student list (to mark absent students who didn't join), you can optionally pass `--roster`:
-
-```bash
-.venv\Scripts\python.exe main.py --record-id "abc-defg-hij" --roster "students.csv"
-```
+### Step 3: Render Configuration
+Render will automatically detect the settings from `render.yaml` / `Procfile`:
+- **Language / Runtime:** `Python 3`
+- **Build Command:** `pip install -r requirements.txt`
+- **Start Command:** `gunicorn app:app`
 
 ---
 
-## 📊 Output Features
-- **Zero Pre-Setup**: Tracks attendance directly from participant display names on Google Meet.
-- **Duration Calculation**: Accurately sums multiple join/leave sessions if someone reconnects.
-- **Formatted Excel Report**: Beautiful summary cards (`Total Attendees`, `Present`, `Absent / Short`, `Attendance %`), participant join/leave times, and color-coded status badges (`Present` in green, `Absent` in red).
+### Step 4: Add Environment Variables in Render
+In the Render Service dashboard, go to the **Environment** tab and add the following keys from your `.env`:
+
+| Key | Value | Description |
+|---|---|---|
+| `GOOGLE_CLIENT_ID` | `487140...apps.googleusercontent.com` | Google OAuth Client ID |
+| `GOOGLE_CLIENT_SECRET` | `GOCSPX-...` | Google OAuth Client Secret |
+| `GOOGLE_REFRESH_TOKEN` | `1//0gvug...` | Refresh token (auto-refreshes access tokens) |
+| `DEFAULT_MIN_DURATION_MINUTES` | `30.0` | Default minimum attendance duration |
+
+Click **Save Changes**. Render will automatically build and deploy your app, giving you a live URL like `https://meet-attendance-tracker.onrender.com`!
+
+---
+
+## 🔑 Google Cloud API Setup (First Time Setup)
+
+To connect with live Google Meet calls:
+
+1. **Google Cloud Console**: Go to [console.cloud.google.com](https://console.cloud.google.com) and create a project.
+2. **Enable Google Meet API**: Go to **APIs & Services** > **Library** > search for **Google Meet API** and click **Enable**.
+3. **OAuth Consent Screen**:
+   - User Type: **External**
+   - Scopes:
+     - `https://www.googleapis.com/auth/meetings.space.readonly`
+     - `https://www.googleapis.com/auth/meetings.space.created`
+   - Test Users: Add your host Google account email.
+4. **Create OAuth 2.0 Credentials**:
+   - Go to **Credentials** > **Create Credentials** > **OAuth client ID**.
+   - Application Type: **Desktop app**.
+   - Copy the Client ID and Client Secret into your `.env` file.
+
+---
+
+## 📄 License
+This project is licensed under the MIT License.
