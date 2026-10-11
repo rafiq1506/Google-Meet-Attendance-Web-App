@@ -16,6 +16,12 @@ from attendance_tracker.tracker import AttendanceTracker
 from attendance_tracker.reporter import AttendanceReporter
 from attendance_tracker.mock_service import get_mock_meeting_participants
 
+from dotenv import load_dotenv
+load_dotenv()
+from keep_alive import keep_alive
+keep_alive()
+
+
 app = Flask(__name__)
 app.config["REPORTS_DIR"] = REPORTS_DIR
 
