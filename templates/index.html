@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Meet Attendance Tracker</title>
+  <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Remix Icons for crisp icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <!-- Ambient background lighting -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="ri-video-on-fill"></i>
+        </div>
+        <div>
+          <div class="brand-title">Meet Attendance <span class="badge-pro">PRO</span></div>
+          <div class="brand-subtitle">Automated Google Meet Participant & Duration Tracker</div>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="status-pill {% if auth_info.ready %}status-ready{% else %}status-demo{% endif %}" id="authStatusPill">
+          <span class="status-dot"></span>
+          <span id="authStatusText">{% if auth_info.ready %}API Ready{% else %}Demo Mode Ready{% endif %}</span>
+        </span>
+        <button class="btn-help" id="btnHelp" title="Render Deployment Guide">
+          <i class="ri-cloud-line"></i> Render Guide
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Card: Controls -->
+    <section class="glass-card control-card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="ri-dashboard-line"></i> Meeting Attendance Dashboard
+        </div>
+        <div class="quick-chips">
+          <button type="button" class="chip-btn" id="btnDemoQuick">
+            <i class="ri-sparkling-fill"></i> Load Demo Data
+          </button>
+          <button type="button" class="chip-btn" id="btnRecentMeetings">
+            <i class="ri-history-line"></i> Recent Meetings
+          </button>
+        </div>
+      </div>
+
+      <form id="attendanceForm" class="control-form" onsubmit="return false;">
+        <div class="form-grid">
+          <!-- Input: Meeting Code or URL -->
+          <div class="form-group span-2">
+            <label for="meetingCodeInput">
+              <span>Google Meet Code or URL</span>
+              <span class="label-hint">e.g. <code>abc-defg-hij</code> or <code>https://meet.google.com/abc-defg-hij</code></span>
+            </label>
+            <div class="input-wrapper">
+              <i class="ri-links-line input-icon"></i>
+              <input 
+                type="text" 
+                id="meetingCodeInput" 
+                name="meeting_code" 
+                placeholder="Paste Google Meet link or meeting code..."
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button type="button" class="btn-clear" id="btnClearInput" title="Clear input">
+                <i class="ri-close-line"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Slider & Duration Input -->
+          <div class="form-group span-2 duration-group">
+            <div class="duration-header">
+              <label for="minDurationRange">Minimum Required Duration</label>
+              <div class="duration-badge">
+                <span id="durationDisplay">{{ default_min_duration | int }}</span>
+                <span class="unit">minutes</span>
+              </div>
+            </div>
+            <div class="range-container">
+              <input 
+                type="range" 
+                id="minDurationRange" 
+                min="0.2" 
+                max="120" 
+                step="0.5" 
+                value="{{ default_min_duration | int }}" 
+              />
+              <div class="range-marks">
+                <span onclick="setDuration(0.2)">Test (0.2m)</span>
+                <span onclick="setDuration(15)">15m</span>
+                <span onclick="setDuration(30)">30m</span>
+                <span onclick="setDuration(45)">45m</span>
+                <span onclick="setDuration(60)">60m</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <button type="button" class="btn-primary" id="btnFetch">
+            <i class="ri-flashlight-line"></i>
+            <span>Fetch & Generate Attendance</span>
+          </button>
+          <button type="button" class="btn-secondary" id="btnTestDemo">
+            <i class="ri-test-tube-line"></i>
+            <span>Run Test (Demo)</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Recent Meetings Drawer / Modal (Hidden by default) -->
+    <div class="recent-drawer" id="recentDrawer" style="display: none;">
+      <div class="recent-header">
+        <div>
+          <h4><i class="ri-time-line"></i> Recent Google Meet Sessions</h4>
+          <p>Click on any past meeting to auto-fill its code</p>
+        </div>
+        <button class="btn-icon-close" id="btnCloseRecent">&times;</button>
+      </div>
+      <div class="recent-list" id="recentList">
+        <div class="loading-spinner"><i class="ri-loader-4-line ri-spin"></i> Fetching records...</div>
+      </div>
+    </div>
+
+    <!-- Results Section (Visible after fetch) -->
+    <section class="results-section" id="resultsSection" style="display: none;">
+      <!-- Summary Metrics Grid -->
+      <div class="metrics-grid">
+        <div class="metric-card total-card">
+          <div class="metric-icon"><i class="ri-group-line"></i></div>
+          <div class="metric-info">
+            <div class="metric-label">Total Attendees</div>
+            <div class="metric-value" id="valTotal">0</div>
+          </div>
+        </div>
+
+        <div class="metric-card present-card">
+          <div class="metric-icon"><i class="ri-checkbox-circle-line"></i></div>
+          <div class="metric-info">
+            <div class="metric-label">Present</div>
+            <div class="metric-value" id="valPresent">0</div>
+          </div>
+          <div class="metric-sub" id="subPresent">Met requirement</div>
+        </div>
+
+        <div class="metric-card absent-card">
+          <div class="metric-icon"><i class="ri-close-circle-line"></i></div>
+          <div class="metric-info">
+            <div class="metric-label">Absent / Short</div>
+            <div class="metric-value" id="valAbsent">0</div>
+          </div>
+          <div class="metric-sub" id="subAbsent">&lt; duration goal</div>
+        </div>
+
+        <div class="metric-card rate-card">
+          <div class="metric-icon"><i class="ri-pie-chart-2-line"></i></div>
+          <div class="metric-info">
+            <div class="metric-label">Attendance Rate</div>
+            <div class="metric-value" id="valRate">0%</div>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="valProgressFill" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table Card -->
+      <div class="glass-card table-card">
+        <div class="table-toolbar">
+          <div class="toolbar-left">
+            <h3 id="tableTitle"><i class="ri-user-star-line"></i> Participant List</h3>
+            <span class="table-count" id="tableCountBadge">0 records</span>
+          </div>
+
+          <div class="toolbar-right">
+            <!-- Search Bar -->
+            <div class="table-search">
+              <i class="ri-search-line"></i>
+              <input type="text" id="searchInput" placeholder="Filter by name..." />
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="filter-tabs">
+              <button class="filter-tab active" data-filter="all">All</button>
+              <button class="filter-tab" data-filter="Present">Present</button>
+              <button class="filter-tab" data-filter="Absent">Absent</button>
+            </div>
+
+            <!-- Download Button -->
+            <a href="#" class="btn-download" id="btnDownloadExcel" target="_blank" download>
+              <i class="ri-file-excel-2-fill"></i>
+              <span>Download Excel</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Attendees Table -->
+        <div class="table-responsive">
+          <table class="custom-table" id="attendeesTable">
+            <thead>
+              <tr>
+                <th style="width: 60px;">#</th>
+                <th>Participant Name</th>
+                <th>Email</th>
+                <th>Active Duration</th>
+                <th>Sessions</th>
+                <th>Status</th>
+                <th>Join Time</th>
+                <th>Leave Time</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- Dynamically populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Empty / Initial Placeholder State -->
+    <div class="empty-state" id="initialState">
+      <div class="empty-illustration">
+        <i class="ri-file-chart-line"></i>
+      </div>
+      <h3>Ready to Track Attendance</h3>
+      <p>Enter your Google Meet link above or click <strong>Run Test (Demo)</strong> to preview instant reporting.</p>
+    </div>
+
+    <!-- Render Deployment Modal -->
+    <div class="modal-overlay" id="helpModal" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3><i class="ri-cloud-fill"></i> Deploying on Render (Free & Fast)</h3>
+          <button class="btn-icon-close" id="btnCloseHelp">&times;</button>
+        </div>
+        <div class="modal-body">
+          <ol class="guide-steps">
+            <li>
+              <strong>Push your code to GitHub:</strong>
+              <code>git add . && git commit -m "Meet Tracker Web App" && git push</code>
+            </li>
+            <li>
+              <strong>Create a Web Service on Render:</strong>
+              Log in to <a href="https://render.com" target="_blank">Render.com</a> &gt; Click <strong>New +</strong> &gt; <strong>Web Service</strong> &gt; Connect your GitHub repository.
+            </li>
+            <li>
+              <strong>Render Settings (Auto-configured):</strong>
+              <ul>
+                <li><strong>Runtime:</strong> Python 3</li>
+                <li><strong>Build Command:</strong> <code>pip install -r requirements.txt</code></li>
+                <li><strong>Start Command:</strong> <code>gunicorn app:app</code></li>
+              </ul>
+            </li>
+            <li>
+              <strong>Add Your Google Token (Environment Variable):</strong>
+              In your Render service settings &gt; <strong>Environment Variables</strong>:
+              Add <code>GOOGLE_TOKEN_JSON</code> and paste the text of your local <code>token.json</code> file.
+              Render will automatically connect to your Google Meet account!
+            </li>
+          </ol>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-primary" id="btnGotIt">Got It!</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>Google Meet Attendance Tracker &bull; Runs locally or on Render &bull; Direct Attendee Extraction</p>
+    </footer>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

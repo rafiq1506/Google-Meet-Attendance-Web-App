@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: google-meet-attendance-tracker
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.8
+      - key: DEFAULT_MIN_DURATION_MINUTES
+        value: 30.0
+      - key: DEFAULT_MIN_ATTENDANCE_PERCENT
+        value: 60.0
+      - key: APPEND_TIMESTAMP_TO_EXCEL
+        value: "True"

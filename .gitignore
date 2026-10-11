@@ -1,0 +1,16 @@
+# Environment & Secrets
+.env
+credentials.json
+token.json
+
+# Python & Virtual Env
+__pycache__/
+*.py[cod]
+.venv/
+env/
+venv/
+
+# Generated Output Reports & Cache
+reports/*.xlsx
+reports/*.csv
+.pytest_cache/
